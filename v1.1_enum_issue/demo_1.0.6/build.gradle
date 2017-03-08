@@ -1,0 +1,44 @@
+apply plugin: "kotlin2js"
+
+dependencies {
+    compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlinVersion
+    compile group: 'org.jetbrains.kotlin', name: 'kotlin-js-library', version: kotlinVersion
+}
+
+buildscript {
+
+    ext.kotlinVersion = '1.0.6'
+    
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+compileKotlin2Js{
+    kotlinOptions.outputFile = "${buildDir}/classes/main/${project.name}_main.js"
+}
+
+task copyJsFilesFromDependencies(type: Copy) {
+    from configurations.compile.collect {
+        if (it.path.endsWith(".jar"))
+            return zipTree(it)
+        return it
+    }
+    from configurations.runtime
+
+    into "${buildDir}/classes/main"
+    include { fileTreeElement ->
+        def path = fileTreeElement.path
+        path.endsWith(".js") && (path.startsWith("META-INF/resources/") || !path.startsWith("META-INF/"))
+    }
+}
+
+classes.dependsOn copyJsFilesFromDependencies
